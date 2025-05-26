@@ -23,6 +23,9 @@ export function SceneConfigModal({
 
   if (!isOpen) return null
 
+  // Get the main viewer (type === 'viewer')
+  const mainViewer = scene.viewers.find(v => v.type === 'viewer')
+
   const handleMirrorPositionChange = (index: number, x: number, y: number) => {
     const newMirrors = [...tempScene.mirrors]
     newMirrors[index] = {
@@ -82,22 +85,20 @@ export function SceneConfigModal({
   }
 
   const handleViewerPositionChange = (x: number, y: number) => {
-    setTempScene({
-      ...tempScene,
-      viewer: {
-        ...tempScene.viewer,
-        position: { x, y }
-      }
+    onUpdate({
+      ...scene,
+      viewers: scene.viewers.map(viewer => 
+        viewer.type === 'viewer' ? { ...viewer, position: { x, y } } : viewer
+      )
     })
   }
 
   const handleViewerColorChange = (color: string) => {
-    setTempScene({
-      ...tempScene,
-      viewer: {
-        ...tempScene.viewer,
-        color
-      }
+    onUpdate({
+      ...scene,
+      viewers: scene.viewers.map(viewer => 
+        viewer.type === 'viewer' ? { ...viewer, color } : viewer
+      )
     })
   }
 
@@ -280,34 +281,35 @@ export function SceneConfigModal({
         <div className="config-section">
           <h3>Viewer Configuration</h3>
           <div className="subsection">
-            <h4>Position</h4>
+            <h4>Viewer</h4>
             <div className="input-group">
               <label>
                 X:
-                <input 
-                  type="number" 
-                  value={tempScene.viewer.position.x} 
-                  onChange={(e) => handleViewerPositionChange(Number(e.target.value), tempScene.viewer.position.y)}
+                <input
+                  type="number"
+                  value={mainViewer?.position.x ?? 0}
+                  onChange={e => handleViewerPositionChange(Number(e.target.value), mainViewer?.position.y ?? 0)}
                 />
               </label>
               <label>
                 Y:
-                <input 
-                  type="number" 
-                  value={tempScene.viewer.position.y} 
-                  onChange={(e) => handleViewerPositionChange(tempScene.viewer.position.x, Number(e.target.value))}
+                <input
+                  type="number"
+                  value={mainViewer?.position.y ?? 0}
+                  onChange={e => handleViewerPositionChange(mainViewer?.position.x ?? 0, Number(e.target.value))}
                 />
               </label>
             </div>
-          </div>
-
-          <div className="subsection">
-            <h4>Color</h4>
-            <input 
-              type="text" 
-              value={tempScene.viewer.color} 
-              onChange={(e) => handleViewerColorChange(e.target.value)}
-            />
+            <div className="input-group">
+              <label>
+                Color:
+                <input
+                  type="color"
+                  value={mainViewer?.color ?? '#ffffff'}
+                  onChange={e => handleViewerColorChange(e.target.value)}
+                />
+              </label>
+            </div>
           </div>
         </div>
 

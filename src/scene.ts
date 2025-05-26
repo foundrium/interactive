@@ -27,28 +27,35 @@ export function getColor(entity: number): string {
 
 // Initial scene configuration
 export const initialScene: SceneGraph = {
-  mirrors: [{
-    id: 'main-mirror',
-    position: { x: 400, y: 400 },
-    angleDegrees: 90,
-    color: 'blue',
-    size: { width: 200, height: 15 }
-  }],
-  objects: [{
-    id: 'object-1',
-    position: { x: 400, y: 350 },
-    type: 'triangle',
-    color: 'red',
-    size: { width: 30, height: 30 },
-    isPulsing: true
-  }],
-  viewer: {
-    position: { x: 400, y: 450 },
-    type: 'original',
-    color: 'white',
-    size: { width: 30, height: 30 }
-  },
-  rays: []
+  mirrors: [
+    {
+      id: 'mirror1',
+      position: { x: 400, y: 300 },
+      angleDegrees: 90,
+      size: { width: 200, height: 20 },
+      color: 'blue'
+    }
+  ],
+  objects: [
+    {
+      id: 'object1',
+      position: { x: 300, y: 250 },
+      type: 'triangle',
+      size: { width: 30, height: 30 },
+      color: 'red',
+      isPulsing: true
+    }
+  ],
+  rays: [],
+  viewers: [
+    {
+      id: 'viewer1',
+      position: { x: 300, y: 350 },
+      type: 'viewer',
+      size: { width: 30, height: 30 },
+      color: 'white'
+    }
+  ]
 }
 
 // Convert DSL scene graph to ECS entities
@@ -122,22 +129,24 @@ export function initializeSceneFromDSL(world: IWorld, scene: SceneGraph): Map<st
     setColor(entity, ray.color || 'yellow')
   }
 
-  // Initialize viewer
-  const viewerEntity = addEntity(world)
-  entityMap.set('viewer', viewerEntity)
+  // Initialize viewers
+  for (const viewer of scene.viewers) {
+    const entity = addEntity(world)
+    entityMap.set(viewer.id, entity)
 
-  // Add components
-  addComponent(world, Position, viewerEntity)
-  addComponent(world, Viewer, viewerEntity)
-  addComponent(world, Size, viewerEntity)
-  addComponent(world, Color, viewerEntity)
+    // Add components
+    addComponent(world, Position, entity)
+    addComponent(world, Viewer, entity)
+    addComponent(world, Size, entity)
+    addComponent(world, Color, entity)
 
-  // Set initial values
-  Position.x[viewerEntity] = scene.viewer.position.x
-  Position.y[viewerEntity] = scene.viewer.position.y
-  Size.width[viewerEntity] = scene.viewer.size?.width ?? 20
-  Size.height[viewerEntity] = scene.viewer.size?.height ?? 20
-  setColor(viewerEntity, scene.viewer.color)
+    // Set initial values
+    Position.x[entity] = viewer.position.x
+    Position.y[entity] = viewer.position.y
+    Size.width[entity] = viewer.size?.width ?? 20
+    Size.height[entity] = viewer.size?.height ?? 20
+    setColor(entity, viewer.color)
+  }
 
   return entityMap
 } 

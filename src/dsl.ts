@@ -2,7 +2,7 @@
 export interface SceneGraph {
   mirrors: Mirror[];
   objects: SceneObject[];
-  viewer: Viewer;
+  viewers: Viewer[];
   rays: Ray[];
 }
 
@@ -10,29 +10,28 @@ export interface SceneGraph {
 export interface Mirror {
   id: string;
   position: Position;
-  angleDegrees: number; // Rotation relative to the horizontal in radians
-  label?: string;
+  angleDegrees: number;
+  size: Size;
   color?: string;
-  size?: Size;
 }
 
 // A physical object that emits or reflects rays
 export interface SceneObject {
   id: string;
-  type: "triangle" | "virtual-triangle"
   position: Position;
-  label?: string;
-  color?: string;
-  size?: Size;
+  type: 'triangle' | 'virtual-triangle';
+  size: Size;
+  color: string;
   isPulsing?: boolean;
 }
 
 // The observer of the scene
 export interface Viewer {
+  id: string;
   position: Position;
-  type: "original" | "virtual"
-  color?: string;
-  size?: Size;
+  type: 'viewer' | 'virtual';
+  size: Size;
+  color: string;
 }
 
 // A light ray (optional if auto-generated)

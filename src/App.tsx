@@ -5,7 +5,7 @@ import './App.css'
 import { Position, Size, Velocity, Angle } from './components'
 import { getColor, initialScene, initializeSceneFromDSL } from './scene'
 import { createBoundarySystem, createMovementSystem } from './systems'
-import type { SceneGraph, Ray } from './dsl'
+import type { SceneGraph, Ray, Viewer } from './dsl'
 import { SceneConfigModal } from './components/SceneConfigModal'
 import { calculateReflectionPoint } from './utils/rayUtils'
 
@@ -14,7 +14,7 @@ function App() {
   const mirrorRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const objectRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const rayRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const viewerRef = useRef<HTMLDivElement>(null)
+  const viewerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [speed, setSpeed] = useState<number>(0)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [scene, setScene] = useState<SceneGraph>(initialScene)
@@ -33,7 +33,7 @@ function App() {
 
     // Get mirror and viewer positions from ECS
     const mirrorEntity = entityMapRef.current.get(scene.mirrors[0].id)
-    const viewerEntity = entityMapRef.current.get('viewer')
+    const viewerEntity = entityMapRef.current.get('viewer1')
     const objectEntity = entityMapRef.current.get(objectId)
 
     if (!mirrorEntity || !viewerEntity || !objectEntity) {
@@ -55,6 +55,21 @@ function App() {
       return
     }
 
+    // Create virtual viewer
+    const virtualViewer: Viewer = {
+      id: `virtual-viewer-${objectId}`,
+      position: {
+        x: Position.x[mirrorEntity] + Size.width[mirrorEntity] + Size.width[viewerEntity] + (Position.x[mirrorEntity] - Position.x[viewerEntity]),
+        y: Position.y[viewerEntity]
+      },
+      type: 'virtual',
+      size: {
+        width: Size.width[viewerEntity],
+        height: Size.height[viewerEntity]
+      },
+      color: getColor(viewerEntity)
+    }
+
     // Create rays
     const incidentRay: Ray = {
       id: `ray-${objectId}-incident`,
@@ -72,13 +87,12 @@ function App() {
       width: 2
     }
 
-    console.log(incidentRay, reflectedRay)
-
-    // Update scene with new rays and object state
+    // Update scene with new rays and virtual viewer
     setScene(prev => ({
       ...prev,
       objects: updatedObjects,
-      rays: [...prev.rays, incidentRay, reflectedRay]
+      rays: [...prev.rays, incidentRay, reflectedRay],
+      viewers: [...prev.viewers, virtualViewer]
     }))
   }
 
@@ -91,11 +105,11 @@ function App() {
 
   useEffect(() => {
     const gameElement = gameRef.current
-    const viewerElement = viewerRef.current
-    if (!gameElement || !viewerElement) return
+    const viewerElements = Array.from(viewerRefs.current.values())
+    if (!gameElement || viewerElements.length === 0) return
 
-    const viewerEntity = entityMapRef.current.get('viewer')
-    if (!viewerEntity) return
+    const viewerEntities = Array.from(entityMapRef.current.values()).filter(id => id !== 0)
+    if (viewerEntities.length === 0) return
 
     // Set initial velocity for all mirrors
     scene.mirrors.forEach(mirror => {
@@ -169,10 +183,18 @@ function App() {
         rayElement.style.backgroundColor = getColor(rayEntity)
       })
 
-      viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
-      viewerElement.style.width = `${Size.width[viewerEntity]}px`
-      viewerElement.style.height = `${Size.height[viewerEntity]}px`
-      viewerElement.style.backgroundColor = getColor(viewerEntity)
+      scene.viewers.forEach(viewer => {
+        const viewerEntity = entityMapRef.current.get(viewer.id)
+        if (!viewerEntity) return
+
+        const viewerElement = viewerRefs.current.get(viewer.id)
+        if (!viewerElement) return
+
+        viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
+        viewerElement.style.width = `${Size.width[viewerEntity]}px`
+        viewerElement.style.height = `${Size.height[viewerEntity]}px`
+        viewerElement.style.backgroundColor = viewer.color
+      })
 
       // Continue the game loop
       requestAnimationFrame(gameLoop)
@@ -221,7 +243,17 @@ function App() {
           className="ray"
         />
       ))}
-      <div ref={viewerRef} className="viewer" />
+      {scene.viewers.map(viewer => (
+        <div
+          key={viewer.id}
+          ref={el => {
+            if (el) viewerRefs.current.set(viewer.id, el)
+            else viewerRefs.current.delete(viewer.id)
+          }}
+          className="viewer"
+          data-virtual={viewer.type === 'virtual'}
+        />
+      ))}
       <button className="config-button" onClick={() => setIsConfigOpen(true)}>
         Configure
       </button>
