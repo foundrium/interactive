@@ -7,7 +7,7 @@ import { getColor, initialScene, initializeSceneFromDSL } from './scene'
 import { createBoundarySystem, createMovementSystem } from './systems'
 import type { SceneGraph, Ray, Viewer } from './dsl'
 import { SceneConfigModal } from './components/SceneConfigModal'
-import { calculateReflectionPoint } from './utils/rayUtils'
+import { calculateReflectionPoint, reflectAcrossMirror } from './utils/rayUtils'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
@@ -43,9 +43,9 @@ function App() {
 
     // Calculate reflection point using ECS positions
     const reflectionPoint = calculateReflectionPoint(
-      { x: Position.x[objectEntity] + Size.width[objectEntity] / 2, y: Position.y[objectEntity] + Size.height[objectEntity] / 2 },
-      { x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 },
-      { x: Position.x[mirrorEntity] + Size.width[mirrorEntity] / 2, y: Position.y[mirrorEntity] + Size.height[mirrorEntity] / 2 },
+      { x: Position.x[objectEntity], y: Position.y[objectEntity] },
+      { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
+      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
       Angle.value[mirrorEntity],
       Size.width[mirrorEntity]
     )
@@ -56,12 +56,15 @@ function App() {
     }
 
     // Create virtual viewer
+    const reflectedPosition = reflectAcrossMirror(
+      { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
+      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
+      Angle.value[mirrorEntity]
+    )
+
     const virtualViewer: Viewer = {
       id: `virtual-viewer-${objectId}`,
-      position: {
-        x: Position.x[mirrorEntity] + Size.width[mirrorEntity] + Size.width[viewerEntity] + (Position.x[mirrorEntity] - Position.x[viewerEntity]),
-        y: Position.y[viewerEntity]
-      },
+      position: reflectedPosition,
       type: 'virtual',
       size: {
         width: Size.width[viewerEntity],
@@ -88,12 +91,15 @@ function App() {
     }
 
     // Update scene with new rays and virtual viewer
-    setScene(prev => ({
-      ...prev,
-      objects: updatedObjects,
-      rays: [...prev.rays, incidentRay, reflectedRay],
-      viewers: [...prev.viewers, virtualViewer]
-    }))
+    setScene(prev => {
+      const newScene = {
+        ...prev,
+        objects: updatedObjects,
+        rays: [...prev.rays, incidentRay, reflectedRay],
+        viewers: [...prev.viewers, virtualViewer]
+      }
+      return newScene
+    })
   }
 
   // Reinitialize ECS when scene changes
@@ -145,7 +151,7 @@ function App() {
         if (!mirrorElement) return
 
         const mirrorAngle = Angle.value[mirrorEntity]
-        mirrorElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px) rotate(${mirrorAngle}rad)`
+        mirrorElement.style.transform = `translate(${Position.x[mirrorEntity] - Size.width[mirrorEntity]/2}px, ${Position.y[mirrorEntity]}px) rotate(${mirrorAngle}rad)`
         mirrorElement.style.backgroundColor = getColor(mirrorEntity)
         mirrorElement.style.width = `${Size.width[mirrorEntity]}px`
         mirrorElement.style.height = `${Size.height[mirrorEntity]}px`
@@ -185,12 +191,19 @@ function App() {
 
       scene.viewers.forEach(viewer => {
         const viewerEntity = entityMapRef.current.get(viewer.id)
-        if (!viewerEntity) return
+        if (!viewerEntity) {
+          console.log('No entity found for viewer:', viewer.id)
+          return
+        }
 
         const viewerElement = viewerRefs.current.get(viewer.id)
-        if (!viewerElement) return
+        if (!viewerElement) {
+          console.log('No DOM element found for viewer:', viewer.id)
+          return
+        }
 
-        viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
+        const transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
+        viewerElement.style.transform = transform
         viewerElement.style.width = `${Size.width[viewerEntity]}px`
         viewerElement.style.height = `${Size.height[viewerEntity]}px`
         viewerElement.style.backgroundColor = viewer.color
