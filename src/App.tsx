@@ -1,34 +1,32 @@
-import { useEffect, useRef, useState } from 'react'
-import { createWorld, addEntity, addComponent } from 'bitecs'
 import type { IWorld } from 'bitecs'
-import { Position, Velocity, Mirror } from './components'
-import { createMovementSystem, createBoundarySystem } from './systems'
+import { createWorld } from 'bitecs'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import { Position, Size, Velocity } from './components'
+import { getColor, initialScene, initializeSceneFromDSL } from './scene'
+import { createBoundarySystem, createMovementSystem } from './systems'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
   const rectangleRef = useRef<HTMLDivElement>(null)
+  const viewerRef = useRef<HTMLDivElement>(null)
   const [speed, setSpeed] = useState(5) // speed in pixels per second
   const worldRef = useRef<IWorld>(createWorld({ maxEntities: 1000 }))
-  const mirrorEntityRef = useRef<number | null>(null)
+  const entityMapRef = useRef<Map<string, number>>(new Map())
 
   useEffect(() => {
     const gameElement = gameRef.current
     const rectangleElement = rectangleRef.current
-    if (!gameElement || !rectangleElement) return
+    const viewerElement = viewerRef.current
+    if (!gameElement || !rectangleElement || !viewerElement) return
 
-    // Create mirror entity
-    const mirrorEntity = addEntity(worldRef.current)
-    mirrorEntityRef.current = mirrorEntity
+    // Initialize scene from DSL
+    entityMapRef.current = initializeSceneFromDSL(worldRef.current, initialScene)
+    const mirrorEntity = entityMapRef.current.get('main-mirror')
+    const viewerEntity = entityMapRef.current.get('viewer')
+    if (!mirrorEntity || !viewerEntity) return
 
-    // Add components to mirror entity
-    addComponent(worldRef.current, Position, mirrorEntity)
-    addComponent(worldRef.current, Velocity, mirrorEntity)
-    addComponent(worldRef.current, Mirror, mirrorEntity)
-
-    // Initialize position and velocity
-    Position.x[mirrorEntity] = 0
-    Position.y[mirrorEntity] = (window.innerHeight - 25) / 2
+    // Set initial velocity for mirror
     Velocity.x[mirrorEntity] = speed * 10 // Scale up the speed
     Velocity.y[mirrorEntity] = 0
 
@@ -48,10 +46,14 @@ function App() {
       movementSystem(worldRef.current)
       boundarySystem(worldRef.current)
 
-      // Update DOM element position
-      if (mirrorEntityRef.current) {
-        rectangleElement.style.transform = `translate(${Position.x[mirrorEntityRef.current]}px, ${Position.y[mirrorEntityRef.current]}px)`
-      }
+      // Update DOM element positions, sizes, and colors
+      rectangleElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px)`
+      rectangleElement.style.backgroundColor = getColor(mirrorEntity)
+      
+      viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
+      viewerElement.style.width = `${Size.width[viewerEntity]}px`
+      viewerElement.style.height = `${Size.height[viewerEntity]}px`
+      viewerElement.style.backgroundColor = getColor(viewerEntity)
 
       // Continue the game loop
       requestAnimationFrame(gameLoop)
@@ -69,6 +71,7 @@ function App() {
   return (
     <div ref={gameRef} className="game-container">
       <div ref={rectangleRef} className="rectangle" />
+      <div ref={viewerRef} className="viewer" />
       <div className="controls">
         <button onClick={() => setSpeed(prev => Math.max(1, prev - 1))}>-</button>
         <span>Speed: {speed} px/s</span>

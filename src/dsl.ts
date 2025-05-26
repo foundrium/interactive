@@ -1,5 +1,5 @@
 // The full scene configuration
-interface SceneGraph {
+export interface SceneGraph {
   mirrors: Mirror[];
   objects: SceneObject[];
   viewer: Viewer;
@@ -7,7 +7,7 @@ interface SceneGraph {
 }
 
 // A mirror in the scene
-interface Mirror {
+export interface Mirror {
   id: string;
   position: Position;
   angleDegrees: number; // Rotation relative to the horizontal in radians
@@ -18,7 +18,7 @@ interface Mirror {
 }
 
 // A physical object that emits or reflects rays
-interface SceneObject {
+export interface SceneObject {
   id: string;
   type: "triangle" | "virtual-triangle"
   position: Position;
@@ -28,7 +28,7 @@ interface SceneObject {
 }
 
 // The observer of the scene
-interface Viewer {
+export interface Viewer {
   position: Position;
   type: "original" | "virtual"
   color?: string;
@@ -36,7 +36,7 @@ interface Viewer {
 }
 
 // A light ray (optional if auto-generated)
-interface Ray {
+export interface Ray {
   from: Position;
   to: Position;
   label?: string;
@@ -45,12 +45,12 @@ interface Ray {
 }
 
 // Reusable building blocks
-interface Position {
+export interface Position {
   x: number;
   y: number;
 }
 
-interface Size {
+export interface Size {
   width: number;
   height: number;
 }

@@ -23,7 +23,14 @@ body {
 .rectangle {
   width: 200px;
   height: 25px;
-  background-color: blue;
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.viewer {
+  border-radius: 50%;
   position: absolute;
   top: 0;
   left: 0;
