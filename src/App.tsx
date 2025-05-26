@@ -31,96 +31,109 @@ function App() {
       obj.id === objectId ? { ...obj, isPulsing: false } : obj
     )
 
-    // Get mirror and viewer positions from ECS
-    const mirrorEntity = entityMapRef.current.get(scene.mirrors[0].id)
+    // Get viewer position from ECS
     const viewerEntity = entityMapRef.current.get('viewer1')
     const objectEntity = entityMapRef.current.get(objectId)
 
-    if (!mirrorEntity || !viewerEntity || !objectEntity) {
+    if (!viewerEntity || !objectEntity) {
       console.warn('Could not find required entities in ECS')
       return
     }
 
-    // Calculate reflection point using ECS positions
-    const reflectionPoint = calculateReflectionPoint(
-      { x: Position.x[objectEntity], y: Position.y[objectEntity] },
-      { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
-      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-      Angle.value[mirrorEntity],
-      Size.width[mirrorEntity]
-    )
+    const newRays: Ray[] = []
+    const newViewers: Viewer[] = []
+    const newObjects: SceneObject[] = []
 
-    if (!reflectionPoint) {
-      console.warn('No reflection point found')
-      return
-    }
+    // For each mirror, calculate reflections
+    scene.mirrors.forEach(mirror => {
+      const mirrorEntity = entityMapRef.current.get(mirror.id)
+      if (!mirrorEntity) return
 
-    // Create virtual viewer
-    const reflectedViewerPosition = reflectAcrossMirror(
-      { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
-      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-      Angle.value[mirrorEntity]
-    )
+      // Calculate reflection point using ECS positions
+      const reflectionPoint = calculateReflectionPoint(
+        { x: Position.x[objectEntity], y: Position.y[objectEntity] },
+        { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
+        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
+        Angle.value[mirrorEntity],
+        Size.width[mirrorEntity]
+      )
 
-    const virtualViewer: Viewer = {
-      id: `virtual-viewer-${objectId}`,
-      position: reflectedViewerPosition,
-      type: 'virtual',
-      size: {
-        width: Size.width[viewerEntity],
-        height: Size.height[viewerEntity]
-      },
-      color: getColor(viewerEntity)
-    }
+      if (!reflectionPoint) {
+        console.warn('No reflection point found for mirror:', mirror.id)
+        return
+      }
 
-    // Create virtual object
-    const reflectedObjectPosition = reflectAcrossMirror(
-      { x: Position.x[objectEntity], y: Position.y[objectEntity] },
-      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-      Angle.value[mirrorEntity]
-    )
+      // Create virtual viewer
+      const reflectedViewerPosition = reflectAcrossMirror(
+        { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
+        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
+        Angle.value[mirrorEntity]
+      )
 
-    const virtualObject: SceneObject = {
-      id: `virtual-${objectId}`,
-      position: reflectedObjectPosition,
-      type: 'virtual-triangle',
-      size: {
-        width: Size.width[objectEntity],
-        height: Size.height[objectEntity]
-      },
-      color: object.color,
-      isPulsing: false
-    }
+      const virtualViewer: Viewer = {
+        id: `virtual-viewer-${objectId}-${mirror.id}`,
+        position: reflectedViewerPosition,
+        type: 'virtual',
+        size: {
+          width: Size.width[viewerEntity],
+          height: Size.height[viewerEntity]
+        },
+        color: getColor(viewerEntity)
+      }
 
-    // Create rays
-    const incidentRay: Ray = {
-      id: `ray-${objectId}-incident`,
-      from: { 
-        x: Position.x[objectEntity] + Size.width[objectEntity] / 2, 
-        y: Position.y[objectEntity] + Size.height[objectEntity] / 2 
-      },
-      to: { x: reflectionPoint.x, y: reflectionPoint.y },
-      color: 'yellow',
-      width: 2
-    }
+      // Create virtual object
+      const reflectedObjectPosition = reflectAcrossMirror(
+        { x: Position.x[objectEntity], y: Position.y[objectEntity] },
+        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
+        Angle.value[mirrorEntity]
+      )
 
-    const reflectedRay: Ray = {
-      id: `ray-${objectId}-reflected`,
-      from: { x: reflectionPoint.x, y: reflectionPoint.y },
-      to: { 
-        x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, 
-        y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 
-      },
-      color: 'yellow',
-      width: 2
-    }
+      const virtualObject: SceneObject = {
+        id: `virtual-${objectId}-${mirror.id}`,
+        position: reflectedObjectPosition,
+        type: 'virtual-triangle',
+        size: {
+          width: Size.width[objectEntity],
+          height: Size.height[objectEntity]
+        },
+        color: object.color,
+        isPulsing: false
+      }
 
-    // Update scene with new rays, virtual viewer, and virtual object
+      // Create rays
+      const incidentRay: Ray = {
+        id: `ray-${objectId}-${mirror.id}-incident`,
+        from: { 
+          x: Position.x[objectEntity] + Size.width[objectEntity] / 2, 
+          y: Position.y[objectEntity] + Size.height[objectEntity] / 2 
+        },
+        to: { x: reflectionPoint.x, y: reflectionPoint.y },
+        color: 'yellow',
+        width: 2
+      }
+
+      const reflectedRay: Ray = {
+        id: `ray-${objectId}-${mirror.id}-reflected`,
+        from: { x: reflectionPoint.x, y: reflectionPoint.y },
+        to: { 
+          x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, 
+          y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 
+        },
+        color: 'yellow',
+        width: 2
+      }
+
+      newRays.push(incidentRay, reflectedRay)
+      newViewers.push(virtualViewer)
+      newObjects.push(virtualObject)
+    })
+
+    // Update scene with new rays, virtual viewers, and virtual objects
     setScene(prev => ({
       ...prev,
-      objects: [...updatedObjects, virtualObject],
-      rays: [...prev.rays, incidentRay, reflectedRay],
-      viewers: [...prev.viewers, virtualViewer]
+      objects: [...updatedObjects, ...newObjects],
+      rays: [...prev.rays, ...newRays],
+      viewers: [...prev.viewers, ...newViewers]
     }))
   }
 

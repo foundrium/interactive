@@ -34,6 +34,13 @@ export const initialScene: SceneGraph = {
       angleDegrees: 90,
       size: { width: 200, height: 20 },
       color: 'blue'
+    },
+    {
+      id: 'mirror2',
+      position: { x: 225, y: 300 },
+      angleDegrees: 90,
+      size: { width: 200, height: 20 },
+      color: 'green'
     }
   ],
   objects: [
