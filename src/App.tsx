@@ -1,18 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
+import { createWorld, addEntity, addComponent } from 'bitecs'
+import type { IWorld } from 'bitecs'
+import { Position, Velocity, Mirror } from './components'
+import { createMovementSystem, createBoundarySystem } from './systems'
 import './App.css'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
   const rectangleRef = useRef<HTMLDivElement>(null)
   const [speed, setSpeed] = useState(5) // speed in pixels per second
+  const worldRef = useRef<IWorld>(createWorld({ maxEntities: 1000 }))
+  const mirrorEntityRef = useRef<number | null>(null)
 
   useEffect(() => {
     const gameElement = gameRef.current
     const rectangleElement = rectangleRef.current
     if (!gameElement || !rectangleElement) return
 
-    let position = 0
-    let direction = 1 // 1 for right, -1 for left
+    // Create mirror entity
+    const mirrorEntity = addEntity(worldRef.current)
+    mirrorEntityRef.current = mirrorEntity
+
+    // Add components to mirror entity
+    addComponent(worldRef.current, Position, mirrorEntity)
+    addComponent(worldRef.current, Velocity, mirrorEntity)
+    addComponent(worldRef.current, Mirror, mirrorEntity)
+
+    // Initialize position and velocity
+    Position.x[mirrorEntity] = 0
+    Position.y[mirrorEntity] = (window.innerHeight - 25) / 2
+    Velocity.x[mirrorEntity] = speed * 10 // Scale up the speed
+    Velocity.y[mirrorEntity] = 0
+
     let lastTimestamp = 0
 
     // Game loop
@@ -21,24 +40,18 @@ function App() {
       const deltaTime = (timestamp - lastTimestamp) / 1000
       lastTimestamp = timestamp
 
-      // Update position based on delta time
-      position += speed * direction * deltaTime * 10 // added the * 10 to make it scale better
+      // Create systems
+      const movementSystem = createMovementSystem(deltaTime)
+      const boundarySystem = createBoundarySystem(window.innerWidth, window.innerHeight)
 
-      // Check boundaries and reverse direction if needed
-      const maxPosition = window.innerWidth - 200 // 200 is rectangle width
-      if (position >= maxPosition) {
-        position = maxPosition
-        direction = -1
-      } else if (position <= 0) {
-        position = 0
-        direction = 1
+      // Run systems
+      movementSystem(worldRef.current)
+      boundarySystem(worldRef.current)
+
+      // Update DOM element position
+      if (mirrorEntityRef.current) {
+        rectangleElement.style.transform = `translate(${Position.x[mirrorEntityRef.current]}px, ${Position.y[mirrorEntityRef.current]}px)`
       }
-
-      // Center vertically
-      const y = (window.innerHeight - 25) / 2 // 25 is rectangle height
-
-      // Apply transform
-      rectangleElement.style.transform = `translate(${position}px, ${y}px)`
 
       // Continue the game loop
       requestAnimationFrame(gameLoop)
