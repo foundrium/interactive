@@ -29,15 +29,14 @@ export function getColor(entity: number): string {
 export const initialScene: SceneGraph = {
   mirrors: [{
     id: 'main-mirror',
-    position: { x: 0, y: 300 },
-    angleDegrees: 0,
-    length: 200,
+    position: { x: 400, y: 400 },
+    angleDegrees: 90,
     color: 'blue',
-    size: { width: 200, height: 25 }
+    size: { width: 200, height: 15 }
   }],
   objects: [],
   viewer: {
-    position: { x: 400, y: 200 },
+    position: { x: 0, y: 50 },
     type: 'original',
     color: 'white',
     size: { width: 30, height: 30 }

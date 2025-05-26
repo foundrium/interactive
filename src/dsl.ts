@@ -11,7 +11,6 @@ export interface Mirror {
   id: string;
   position: Position;
   angleDegrees: number; // Rotation relative to the horizontal in radians
-  length?: number;
   label?: string;
   color?: string;
   size?: Size;

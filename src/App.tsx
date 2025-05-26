@@ -2,17 +2,28 @@ import type { IWorld } from 'bitecs'
 import { createWorld } from 'bitecs'
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { Position, Size, Velocity } from './components'
+import { Position, Size, Velocity, Angle, Color } from './components'
 import { getColor, initialScene, initializeSceneFromDSL } from './scene'
 import { createBoundarySystem, createMovementSystem } from './systems'
+import type { SceneGraph } from './dsl'
+import { SceneConfigModal } from './components/SceneConfigModal'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
   const rectangleRef = useRef<HTMLDivElement>(null)
   const viewerRef = useRef<HTMLDivElement>(null)
-  const [speed, setSpeed] = useState(5) // speed in pixels per second
+  const [speed, setSpeed] = useState<number>(0)
+  const [isConfigOpen, setIsConfigOpen] = useState(false)
+  const [scene, setScene] = useState<SceneGraph>(initialScene)
   const worldRef = useRef<IWorld>(createWorld({ maxEntities: 1000 }))
   const entityMapRef = useRef<Map<string, number>>(new Map())
+
+  // Reinitialize ECS when scene changes
+  useEffect(() => {
+    // Create a new world to ensure clean state
+    worldRef.current = createWorld({ maxEntities: 1000 })
+    entityMapRef.current = initializeSceneFromDSL(worldRef.current, scene)
+  }, [scene])
 
   useEffect(() => {
     const gameElement = gameRef.current
@@ -20,8 +31,6 @@ function App() {
     const viewerElement = viewerRef.current
     if (!gameElement || !rectangleElement || !viewerElement) return
 
-    // Initialize scene from DSL
-    entityMapRef.current = initializeSceneFromDSL(worldRef.current, initialScene)
     const mirrorEntity = entityMapRef.current.get('main-mirror')
     const viewerEntity = entityMapRef.current.get('viewer')
     if (!mirrorEntity || !viewerEntity) return
@@ -43,13 +52,16 @@ function App() {
       const boundarySystem = createBoundarySystem(window.innerWidth, window.innerHeight)
 
       // Run systems
-      movementSystem(worldRef.current)
-      boundarySystem(worldRef.current)
+      movementSystem(worldRef.current) // for now I've set the movement speed to 0
+      boundarySystem(worldRef.current) // this will run but not used since mirrors are static atm
 
       // Update DOM element positions, sizes, and colors
-      rectangleElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px)`
+      const mirrorAngle = Angle.value[mirrorEntity]
+      rectangleElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px) rotate(${mirrorAngle}rad)`
       rectangleElement.style.backgroundColor = getColor(mirrorEntity)
-      
+      rectangleElement.style.width = `${Size.width[mirrorEntity]}px`
+      rectangleElement.style.height = `${Size.height[mirrorEntity]}px`
+
       viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
       viewerElement.style.width = `${Size.width[viewerEntity]}px`
       viewerElement.style.height = `${Size.height[viewerEntity]}px`
@@ -66,17 +78,21 @@ function App() {
     return () => {
       cancelAnimationFrame(animationFrameId)
     }
-  }, [speed]) // Add speed to dependencies
+  }, [speed, scene])
 
   return (
     <div ref={gameRef} className="game-container">
       <div ref={rectangleRef} className="rectangle" />
       <div ref={viewerRef} className="viewer" />
-      <div className="controls">
-        <button onClick={() => setSpeed(prev => Math.max(1, prev - 1))}>-</button>
-        <span>Speed: {speed} px/s</span>
-        <button onClick={() => setSpeed(prev => prev + 1)}>+</button>
-      </div>
+      <button className="config-button" onClick={() => setIsConfigOpen(true)}>
+        Configure
+      </button>
+      <SceneConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        scene={scene}
+        onUpdate={setScene}
+      />
     </div>
   )
 }
