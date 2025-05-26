@@ -131,7 +131,8 @@ export function SceneConfigModal({
       position: { x: 400, y: 350 },
       type: 'triangle' as const,
       color: 'red',
-      size: { width: 30, height: 30 }
+      size: { width: 30, height: 30 },
+      isPulsing: true
     }
     setTempScene({
       ...tempScene,
