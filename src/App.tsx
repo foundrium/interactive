@@ -11,6 +11,7 @@ import { SceneConfigModal } from './components/SceneConfigModal'
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
   const mirrorRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const objectRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const viewerRef = useRef<HTMLDivElement>(null)
   const [speed, setSpeed] = useState<number>(0)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
@@ -73,6 +74,19 @@ function App() {
         mirrorElement.style.height = `${Size.height[mirrorEntity]}px`
       })
 
+      scene.objects.forEach(object => {
+        const objectEntity = entityMapRef.current.get(object.id)
+        if (!objectEntity) return
+
+        const objectElement = objectRefs.current.get(object.id)
+        if (!objectElement) return
+
+        objectElement.style.transform = `translate(${Position.x[objectEntity]}px, ${Position.y[objectEntity]}px)`
+        objectElement.style.color = getColor(objectEntity)
+        objectElement.style.width = `${Size.width[objectEntity]}px`
+        objectElement.style.height = `${Size.height[objectEntity]}px`
+      })
+
       viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
       viewerElement.style.width = `${Size.width[viewerEntity]}px`
       viewerElement.style.height = `${Size.height[viewerEntity]}px`
@@ -101,6 +115,16 @@ function App() {
             else mirrorRefs.current.delete(mirror.id)
           }}
           className="rectangle"
+        />
+      ))}
+      {scene.objects.map(object => (
+        <div
+          key={object.id}
+          ref={el => {
+            if (el) objectRefs.current.set(object.id, el)
+            else objectRefs.current.delete(object.id)
+          }}
+          className="triangle"
         />
       ))}
       <div ref={viewerRef} className="viewer" />

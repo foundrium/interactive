@@ -101,6 +101,52 @@ export function SceneConfigModal({
     })
   }
 
+  const handleObjectPositionChange = (index: number, x: number, y: number) => {
+    const newObjects = [...tempScene.objects]
+    newObjects[index] = {
+      ...newObjects[index],
+      position: { x, y }
+    }
+    setTempScene({
+      ...tempScene,
+      objects: newObjects
+    })
+  }
+
+  const handleObjectColorChange = (index: number, color: string) => {
+    const newObjects = [...tempScene.objects]
+    newObjects[index] = {
+      ...newObjects[index],
+      color
+    }
+    setTempScene({
+      ...tempScene,
+      objects: newObjects
+    })
+  }
+
+  const handleAddObject = () => {
+    const newObject = {
+      id: `object-${tempScene.objects.length + 1}`,
+      position: { x: 400, y: 350 },
+      type: 'triangle' as const,
+      color: 'red',
+      size: { width: 30, height: 30 }
+    }
+    setTempScene({
+      ...tempScene,
+      objects: [...tempScene.objects, newObject]
+    })
+  }
+
+  const handleRemoveObject = (index: number) => {
+    const newObjects = tempScene.objects.filter((_, i) => i !== index)
+    setTempScene({
+      ...tempScene,
+      objects: newObjects
+    })
+  }
+
   const handleSave = () => {
     onUpdate(tempScene)
     onClose()
@@ -172,6 +218,58 @@ export function SceneConfigModal({
                   type="text" 
                   value={mirror.color} 
                   onChange={(e) => handleMirrorColorChange(index, e.target.value)}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="config-section">
+          <div className="section-header">
+            <h3>Objects</h3>
+            <button className="add-button" onClick={handleAddObject}>Add Object</button>
+          </div>
+
+          {tempScene.objects.map((object, index) => (
+            <div key={object.id} className="object-config">
+              <div className="subsection-header">
+                <h4>Object {index + 1}</h4>
+                <button 
+                  className="remove-button"
+                  onClick={() => handleRemoveObject(index)}
+                >
+                  Remove
+                </button>
+              </div>
+
+              <div className="subsection">
+                <h5>Position</h5>
+                <div className="input-group">
+                  <label>
+                    X:
+                    <input 
+                      type="number" 
+                      value={object.position.x} 
+                      onChange={(e) => handleObjectPositionChange(index, Number(e.target.value), object.position.y)}
+                    />
+                  </label>
+                  <label>
+                    Y:
+                    <input 
+                      type="number" 
+                      value={object.position.y} 
+                      onChange={(e) => handleObjectPositionChange(index, object.position.x, Number(e.target.value))}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="subsection">
+                <h5>Color</h5>
+                <input 
+                  type="text" 
+                  value={object.color} 
+                  onChange={(e) => handleObjectColorChange(index, e.target.value)}
                 />
               </div>
             </div>

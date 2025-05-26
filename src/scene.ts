@@ -34,9 +34,15 @@ export const initialScene: SceneGraph = {
     color: 'blue',
     size: { width: 200, height: 15 }
   }],
-  objects: [],
+  objects: [{
+    id: 'object-1',
+    position: { x: 400, y: 350 },
+    type: 'triangle',
+    color: 'red',
+    size: { width: 30, height: 30 }
+  }],
   viewer: {
-    position: { x: 0, y: 50 },
+    position: { x: 400, y: 450 },
     type: 'original',
     color: 'white',
     size: { width: 30, height: 30 }
@@ -71,6 +77,26 @@ export function initializeSceneFromDSL(world: IWorld, scene: SceneGraph): Map<st
       Size.height[entity] = mirror.size.height
     }
     setColor(entity, mirror.color)
+  }
+
+  // Initialize objects
+  for (const object of scene.objects) {
+    const entity = addEntity(world)
+    entityMap.set(object.id, entity)
+
+    // Add components
+    addComponent(world, Position, entity)
+    addComponent(world, Size, entity)
+    addComponent(world, Color, entity)
+
+    // Set initial values
+    Position.x[entity] = object.position.x
+    Position.y[entity] = object.position.y
+    if (object.size) {
+      Size.width[entity] = object.size.width
+      Size.height[entity] = object.size.height
+    }
+    setColor(entity, object.color)
   }
 
   // Initialize viewer

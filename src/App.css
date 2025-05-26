@@ -308,3 +308,15 @@ input[type="text"] {
   color: #b0b0b0;
   font-size: 0.9rem;
 }
+
+.triangle {
+  width: 0;
+  height: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 30px solid currentColor;
+}
