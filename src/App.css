@@ -322,6 +322,11 @@ input[type="text"] {
   animation: pulse 2s infinite;
 }
 
+.triangle[data-virtual="true"] {
+  filter: saturate(0.3) opacity(0.5);
+  animation: none;
+}
+
 @keyframes pulse {
   0% {
     filter: drop-shadow(0 0 0 currentColor);

@@ -5,7 +5,7 @@ import './App.css'
 import { Position, Size, Velocity, Angle } from './components'
 import { getColor, initialScene, initializeSceneFromDSL } from './scene'
 import { createBoundarySystem, createMovementSystem } from './systems'
-import type { SceneGraph, Ray, Viewer } from './dsl'
+import type { SceneGraph, Ray, Viewer, SceneObject } from './dsl'
 import { SceneConfigModal } from './components/SceneConfigModal'
 import { calculateReflectionPoint, reflectAcrossMirror } from './utils/rayUtils'
 
@@ -56,7 +56,7 @@ function App() {
     }
 
     // Create virtual viewer
-    const reflectedPosition = reflectAcrossMirror(
+    const reflectedViewerPosition = reflectAcrossMirror(
       { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
       { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
       Angle.value[mirrorEntity]
@@ -64,7 +64,7 @@ function App() {
 
     const virtualViewer: Viewer = {
       id: `virtual-viewer-${objectId}`,
-      position: reflectedPosition,
+      position: reflectedViewerPosition,
       type: 'virtual',
       size: {
         width: Size.width[viewerEntity],
@@ -73,10 +73,32 @@ function App() {
       color: getColor(viewerEntity)
     }
 
+    // Create virtual object
+    const reflectedObjectPosition = reflectAcrossMirror(
+      { x: Position.x[objectEntity], y: Position.y[objectEntity] },
+      { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
+      Angle.value[mirrorEntity]
+    )
+
+    const virtualObject: SceneObject = {
+      id: `virtual-${objectId}`,
+      position: reflectedObjectPosition,
+      type: 'virtual-triangle',
+      size: {
+        width: Size.width[objectEntity],
+        height: Size.height[objectEntity]
+      },
+      color: object.color,
+      isPulsing: false
+    }
+
     // Create rays
     const incidentRay: Ray = {
       id: `ray-${objectId}-incident`,
-      from: { x: Position.x[objectEntity] + Size.width[objectEntity] / 2, y: Position.y[objectEntity] + Size.height[objectEntity] / 2 },
+      from: { 
+        x: Position.x[objectEntity] + Size.width[objectEntity] / 2, 
+        y: Position.y[objectEntity] + Size.height[objectEntity] / 2 
+      },
       to: { x: reflectionPoint.x, y: reflectionPoint.y },
       color: 'yellow',
       width: 2
@@ -85,21 +107,21 @@ function App() {
     const reflectedRay: Ray = {
       id: `ray-${objectId}-reflected`,
       from: { x: reflectionPoint.x, y: reflectionPoint.y },
-      to: { x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 },
+      to: { 
+        x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, 
+        y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 
+      },
       color: 'yellow',
       width: 2
     }
 
-    // Update scene with new rays and virtual viewer
-    setScene(prev => {
-      const newScene = {
-        ...prev,
-        objects: updatedObjects,
-        rays: [...prev.rays, incidentRay, reflectedRay],
-        viewers: [...prev.viewers, virtualViewer]
-      }
-      return newScene
-    })
+    // Update scene with new rays, virtual viewer, and virtual object
+    setScene(prev => ({
+      ...prev,
+      objects: [...updatedObjects, virtualObject],
+      rays: [...prev.rays, incidentRay, reflectedRay],
+      viewers: [...prev.viewers, virtualViewer]
+    }))
   }
 
   // Reinitialize ECS when scene changes
@@ -244,6 +266,7 @@ function App() {
           className="triangle"
           onClick={() => handleObjectClick(object.id)}
           style={{ cursor: 'pointer' }}
+          data-virtual={object.type === 'virtual-triangle'}
         />
       ))}
       {scene.rays.map(ray => (
