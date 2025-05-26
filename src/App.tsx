@@ -10,7 +10,7 @@ import { SceneConfigModal } from './components/SceneConfigModal'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
-  const rectangleRef = useRef<HTMLDivElement>(null)
+  const mirrorRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const viewerRef = useRef<HTMLDivElement>(null)
   const [speed, setSpeed] = useState<number>(0)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
@@ -27,17 +27,20 @@ function App() {
 
   useEffect(() => {
     const gameElement = gameRef.current
-    const rectangleElement = rectangleRef.current
     const viewerElement = viewerRef.current
-    if (!gameElement || !rectangleElement || !viewerElement) return
+    if (!gameElement || !viewerElement) return
 
-    const mirrorEntity = entityMapRef.current.get('main-mirror')
     const viewerEntity = entityMapRef.current.get('viewer')
-    if (!mirrorEntity || !viewerEntity) return
+    if (!viewerEntity) return
 
-    // Set initial velocity for mirror
-    Velocity.x[mirrorEntity] = speed * 10 // Scale up the speed
-    Velocity.y[mirrorEntity] = 0
+    // Set initial velocity for all mirrors
+    scene.mirrors.forEach(mirror => {
+      const mirrorEntity = entityMapRef.current.get(mirror.id)
+      if (mirrorEntity) {
+        Velocity.x[mirrorEntity] = speed * 10 // Scale up the speed
+        Velocity.y[mirrorEntity] = 0
+      }
+    })
 
     let lastTimestamp = 0
 
@@ -52,15 +55,23 @@ function App() {
       const boundarySystem = createBoundarySystem(window.innerWidth, window.innerHeight)
 
       // Run systems
-      movementSystem(worldRef.current) // for now I've set the movement speed to 0
-      boundarySystem(worldRef.current) // this will run but not used since mirrors are static atm
+      movementSystem(worldRef.current)
+      boundarySystem(worldRef.current)
 
       // Update DOM element positions, sizes, and colors
-      const mirrorAngle = Angle.value[mirrorEntity]
-      rectangleElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px) rotate(${mirrorAngle}rad)`
-      rectangleElement.style.backgroundColor = getColor(mirrorEntity)
-      rectangleElement.style.width = `${Size.width[mirrorEntity]}px`
-      rectangleElement.style.height = `${Size.height[mirrorEntity]}px`
+      scene.mirrors.forEach(mirror => {
+        const mirrorEntity = entityMapRef.current.get(mirror.id)
+        if (!mirrorEntity) return
+
+        const mirrorElement = mirrorRefs.current.get(mirror.id)
+        if (!mirrorElement) return
+
+        const mirrorAngle = Angle.value[mirrorEntity]
+        mirrorElement.style.transform = `translate(${Position.x[mirrorEntity]}px, ${Position.y[mirrorEntity]}px) rotate(${mirrorAngle}rad)`
+        mirrorElement.style.backgroundColor = getColor(mirrorEntity)
+        mirrorElement.style.width = `${Size.width[mirrorEntity]}px`
+        mirrorElement.style.height = `${Size.height[mirrorEntity]}px`
+      })
 
       viewerElement.style.transform = `translate(${Position.x[viewerEntity]}px, ${Position.y[viewerEntity]}px)`
       viewerElement.style.width = `${Size.width[viewerEntity]}px`
@@ -82,7 +93,16 @@ function App() {
 
   return (
     <div ref={gameRef} className="game-container">
-      <div ref={rectangleRef} className="rectangle" />
+      {scene.mirrors.map(mirror => (
+        <div
+          key={mirror.id}
+          ref={el => {
+            if (el) mirrorRefs.current.set(mirror.id, el)
+            else mirrorRefs.current.delete(mirror.id)
+          }}
+          className="rectangle"
+        />
+      ))}
       <div ref={viewerRef} className="viewer" />
       <button className="config-button" onClick={() => setIsConfigOpen(true)}>
         Configure

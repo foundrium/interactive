@@ -243,3 +243,68 @@ input[type="text"] {
 .modal-actions button:hover {
   background-color: rgba(255, 255, 255, 0.2);
 }
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.add-button {
+  padding: 4px 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.add-button:hover {
+  background-color: #45a049;
+}
+
+.mirror-config {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.subsection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.subsection-header h4 {
+  margin: 0;
+  color: #e0e0e0;
+}
+
+.remove-button {
+  padding: 2px 8px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.remove-button:hover:not(:disabled) {
+  background-color: #d32f2f;
+}
+
+.remove-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+}
+
+.subsection h5 {
+  margin-bottom: 0.5rem;
+  color: #b0b0b0;
+  font-size: 0.9rem;
+}

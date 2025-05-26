@@ -23,36 +23,61 @@ export function SceneConfigModal({
 
   if (!isOpen) return null
 
-  const handleMirrorPositionChange = (x: number, y: number) => {
-    if (!tempScene.mirrors[0]) return
+  const handleMirrorPositionChange = (index: number, x: number, y: number) => {
+    const newMirrors = [...tempScene.mirrors]
+    newMirrors[index] = {
+      ...newMirrors[index],
+      position: { x, y }
+    }
     setTempScene({
       ...tempScene,
-      mirrors: [{
-        ...tempScene.mirrors[0],
-        position: { x, y }
-      }]
+      mirrors: newMirrors
     })
   }
 
-  const handleMirrorAngleChange = (angleDegrees: number) => {
-    if (!tempScene.mirrors[0]) return
+  const handleMirrorAngleChange = (index: number, angleDegrees: number) => {
+    const newMirrors = [...tempScene.mirrors]
+    newMirrors[index] = {
+      ...newMirrors[index],
+      angleDegrees
+    }
     setTempScene({
       ...tempScene,
-      mirrors: [{
-        ...tempScene.mirrors[0],
-        angleDegrees
-      }]
+      mirrors: newMirrors
     })
   }
 
-  const handleMirrorColorChange = (color: string) => {
-    if (!tempScene.mirrors[0]) return
+  const handleMirrorColorChange = (index: number, color: string) => {
+    const newMirrors = [...tempScene.mirrors]
+    newMirrors[index] = {
+      ...newMirrors[index],
+      color
+    }
     setTempScene({
       ...tempScene,
-      mirrors: [{
-        ...tempScene.mirrors[0],
-        color
-      }]
+      mirrors: newMirrors
+    })
+  }
+
+  const handleAddMirror = () => {
+    const newMirror = {
+      id: `mirror-${tempScene.mirrors.length + 1}`,
+      position: { x: 400, y: 400 },
+      angleDegrees: 90,
+      color: 'blue',
+      size: { width: 200, height: 15 }
+    }
+    setTempScene({
+      ...tempScene,
+      mirrors: [...tempScene.mirrors, newMirror]
+    })
+  }
+
+  const handleRemoveMirror = (index: number) => {
+    const newMirrors = tempScene.mirrors.filter((_, i) => i !== index)
+    setTempScene({
+      ...tempScene,
+      mirrors: newMirrors
     })
   }
 
@@ -92,46 +117,65 @@ export function SceneConfigModal({
         <h2>Scene Configuration</h2>
         
         <div className="config-section">
-          <h3>Mirror Configuration</h3>
-          <div className="subsection">
-            <h4>Position</h4>
-            <div className="input-group">
-              <label>
-                X:
+          <div className="section-header">
+            <h3>Mirrors</h3>
+            <button className="add-button" onClick={handleAddMirror}>Add Mirror</button>
+          </div>
+          
+          {tempScene.mirrors.map((mirror, index) => (
+            <div key={mirror.id} className="mirror-config">
+              <div className="subsection-header">
+                <h4>Mirror {index + 1}</h4>
+                <button 
+                  className="remove-button"
+                  onClick={() => handleRemoveMirror(index)}
+                  disabled={tempScene.mirrors.length === 1}
+                >
+                  Remove
+                </button>
+              </div>
+              
+              <div className="subsection">
+                <h5>Position</h5>
+                <div className="input-group">
+                  <label>
+                    X:
+                    <input 
+                      type="number" 
+                      value={mirror.position.x} 
+                      onChange={(e) => handleMirrorPositionChange(index, Number(e.target.value), mirror.position.y)}
+                    />
+                  </label>
+                  <label>
+                    Y:
+                    <input 
+                      type="number" 
+                      value={mirror.position.y} 
+                      onChange={(e) => handleMirrorPositionChange(index, mirror.position.x, Number(e.target.value))}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="subsection">
+                <h5>Angle (degrees)</h5>
                 <input 
                   type="number" 
-                  value={tempScene.mirrors[0]?.position.x ?? 0} 
-                  onChange={(e) => handleMirrorPositionChange(Number(e.target.value), tempScene.mirrors[0]?.position.y ?? 0)}
+                  value={mirror.angleDegrees} 
+                  onChange={(e) => handleMirrorAngleChange(index, Number(e.target.value))}
                 />
-              </label>
-              <label>
-                Y:
+              </div>
+
+              <div className="subsection">
+                <h5>Color</h5>
                 <input 
-                  type="number" 
-                  value={tempScene.mirrors[0]?.position.y ?? 0} 
-                  onChange={(e) => handleMirrorPositionChange(tempScene.mirrors[0]?.position.x ?? 0, Number(e.target.value))}
+                  type="text" 
+                  value={mirror.color} 
+                  onChange={(e) => handleMirrorColorChange(index, e.target.value)}
                 />
-              </label>
+              </div>
             </div>
-          </div>
-
-          <div className="subsection">
-            <h4>Angle (degrees)</h4>
-            <input 
-              type="number" 
-              value={tempScene.mirrors[0]?.angleDegrees ?? 0} 
-              onChange={(e) => handleMirrorAngleChange(Number(e.target.value))}
-            />
-          </div>
-
-          <div className="subsection">
-            <h4>Color</h4>
-            <input 
-              type="text" 
-              value={tempScene.mirrors[0]?.color ?? 'blue'} 
-              onChange={(e) => handleMirrorColorChange(e.target.value)}
-            />
-          </div>
+          ))}
         </div>
 
         <div className="config-section">
