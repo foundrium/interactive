@@ -333,3 +333,26 @@ input[type="text"] {
     filter: drop-shadow(0 0 0 currentColor);
   }
 }
+
+.ray {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  transform-origin: left center;
+  background-color: yellow;
+  height: 2px;
+}
+
+.ray::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid yellow;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}

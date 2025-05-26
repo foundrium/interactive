@@ -3,7 +3,7 @@ export interface SceneGraph {
   mirrors: Mirror[];
   objects: SceneObject[];
   viewer: Viewer;
-  rays?: Ray[]; // Optional; could be auto-generated or overridden based on author's needs
+  rays: Ray[];
 }
 
 // A mirror in the scene
@@ -24,6 +24,7 @@ export interface SceneObject {
   label?: string;
   color?: string;
   size?: Size;
+  isPulsing?: boolean;
 }
 
 // The observer of the scene
@@ -36,11 +37,13 @@ export interface Viewer {
 
 // A light ray (optional if auto-generated)
 export interface Ray {
+  id: string;
   from: Position;
   to: Position;
   label?: string;
   style?: "solid" | "dashed";
   color?: string;
+  width?: number;
 }
 
 // Reusable building blocks

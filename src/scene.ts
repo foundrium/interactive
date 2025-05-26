@@ -36,17 +36,19 @@ export const initialScene: SceneGraph = {
   }],
   objects: [{
     id: 'object-1',
-    position: { x: 400, y: 325 },
+    position: { x: 400, y: 350 },
     type: 'triangle',
     color: 'red',
-    size: { width: 30, height: 30 }
+    size: { width: 30, height: 30 },
+    isPulsing: true
   }],
   viewer: {
     position: { x: 400, y: 450 },
     type: 'original',
     color: 'white',
     size: { width: 30, height: 30 }
-  }
+  },
+  rays: []
 }
 
 // Convert DSL scene graph to ECS entities
@@ -97,6 +99,27 @@ export function initializeSceneFromDSL(world: IWorld, scene: SceneGraph): Map<st
       Size.height[entity] = object.size.height
     }
     setColor(entity, object.color)
+  }
+
+  // Initialize rays
+  for (const ray of scene.rays) {
+    const entity = addEntity(world)
+    entityMap.set(ray.id, entity)
+
+    // Add components
+    addComponent(world, Position, entity)
+    addComponent(world, Size, entity)
+    addComponent(world, Color, entity)
+
+    // Set initial values
+    Position.x[entity] = ray.from.x
+    Position.y[entity] = ray.from.y
+    Size.width[entity] = ray.width || 2
+    Size.height[entity] = Math.sqrt(
+      Math.pow(ray.to.x - ray.from.x, 2) + 
+      Math.pow(ray.to.y - ray.from.y, 2)
+    )
+    setColor(entity, ray.color || 'yellow')
   }
 
   // Initialize viewer
