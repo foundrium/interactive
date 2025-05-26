@@ -36,7 +36,7 @@ export const initialScene: SceneGraph = {
   }],
   objects: [{
     id: 'object-1',
-    position: { x: 400, y: 350 },
+    position: { x: 400, y: 325 },
     type: 'triangle',
     color: 'red',
     size: { width: 30, height: 30 }

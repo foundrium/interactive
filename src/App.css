@@ -319,4 +319,17 @@ input[type="text"] {
   border-left: 15px solid transparent;
   border-right: 15px solid transparent;
   border-bottom: 30px solid currentColor;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    filter: drop-shadow(0 0 0 currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 15px currentColor);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 currentColor);
+  }
 }
