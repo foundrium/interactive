@@ -22,8 +22,8 @@ The simulation demonstrates key physics concepts:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/foundrium/foundrium-interactive.git
-cd foundrium-interactive
+git clone https://github.com/foundrium/interactive.git
+cd interactive
 ```
 
 2. Install dependencies:
