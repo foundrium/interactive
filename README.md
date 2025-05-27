@@ -4,6 +4,9 @@ An interactive physics simulation that demonstrates light reflection and virtual
 
 The combination of DSL and ECS provides a flexible and efficient way to manage complex scene interactions while maintaining clean separation of concerns and good performance. Authors and LLM would use the DSL and then the adapter pattern handles the translation into the ECS for improved performance.
 
+## Example Interactive 
+![interactive](https://github.com/user-attachments/assets/63b50964-c67f-4f8a-8a42-41f0a882b00c)
+
 ## Overview
 
 This interactive simulation allows users to:
