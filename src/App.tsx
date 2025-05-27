@@ -2,12 +2,11 @@ import type { IWorld } from 'bitecs'
 import { createWorld } from 'bitecs'
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
-import { Position, Size, Velocity, Angle } from './components'
-import { getColor, initialScene, initializeSceneFromDSL } from './scene'
-import { createBoundarySystem, createMovementSystem } from './systems'
-import type { SceneGraph, Ray, Viewer, SceneObject } from './dsl'
+import { Angle, Position, Size } from './components'
 import { SceneConfigModal } from './components/SceneConfigModal'
-import { calculateReflectionPoint, reflectAcrossMirror } from './utils/rayUtils'
+import type { SceneGraph } from './dsl'
+import { getColor, initialScene, initializeSceneFromDSL } from './scene'
+import { createBoundarySystem, createEmitSystem, createMovementSystem, createReflectionSystem } from './systems'
 
 function App() {
   const gameRef = useRef<HTMLDivElement>(null)
@@ -15,7 +14,6 @@ function App() {
   const objectRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const rayRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const viewerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const [speed, setSpeed] = useState<number>(0)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [scene, setScene] = useState<SceneGraph>(initialScene)
   const worldRef = useRef<IWorld>(createWorld({ maxEntities: 1000 }))
@@ -40,101 +38,42 @@ function App() {
       return
     }
 
-    const newRays: Ray[] = []
-    const newViewers: Viewer[] = []
-    const newObjects: SceneObject[] = []
+    // Mark the clicked object in the entity map
+    entityMapRef.current.set('clickedObject', objectEntity)
 
-    // For each mirror, calculate reflections
-    scene.mirrors.forEach(mirror => {
-      const mirrorEntity = entityMapRef.current.get(mirror.id)
-      if (!mirrorEntity) return
-
-      // Calculate reflection point using ECS positions
-      const reflectionPoint = calculateReflectionPoint(
-        { x: Position.x[objectEntity], y: Position.y[objectEntity] },
-        { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
-        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-        Angle.value[mirrorEntity],
-        Size.width[mirrorEntity]
-      )
-
-      if (!reflectionPoint) {
-        console.warn('No reflection point found for mirror:', mirror.id)
-        return
+    // Create reflection system
+    const reflectionSystem = createReflectionSystem(
+      worldRef.current,
+      entityMapRef.current,
+      ({ viewers: virtualViewers, objects: virtualObjects }) => {
+        // Update scene with virtual viewers and objects
+        setScene(prev => ({
+          ...prev,
+          objects: [...updatedObjects, ...virtualObjects],
+          viewers: [...prev.viewers, ...virtualViewers]
+        }))
       }
+    )
 
-      // Create virtual viewer
-      const reflectedViewerPosition = reflectAcrossMirror(
-        { x: Position.x[viewerEntity], y: Position.y[viewerEntity] },
-        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-        Angle.value[mirrorEntity]
-      )
-
-      const virtualViewer: Viewer = {
-        id: `virtual-viewer-${objectId}-${mirror.id}`,
-        position: reflectedViewerPosition,
-        type: 'virtual',
-        size: {
-          width: Size.width[viewerEntity],
-          height: Size.height[viewerEntity]
-        },
-        color: getColor(viewerEntity)
+    // Create emit system
+    const emitSystem = createEmitSystem(
+      worldRef.current,
+      entityMapRef.current,
+      (emittedRays) => {
+        // Update scene with emitted rays
+        setScene(prev => ({
+          ...prev,
+          rays: [...prev.rays, ...emittedRays]
+        }))
       }
+    )
 
-      // Create virtual object
-      const reflectedObjectPosition = reflectAcrossMirror(
-        { x: Position.x[objectEntity], y: Position.y[objectEntity] },
-        { x: Position.x[mirrorEntity], y: Position.y[mirrorEntity] },
-        Angle.value[mirrorEntity]
-      )
+    // Run the systems
+    reflectionSystem(worldRef.current)
+    emitSystem(worldRef.current)
 
-      const virtualObject: SceneObject = {
-        id: `virtual-${objectId}-${mirror.id}`,
-        position: reflectedObjectPosition,
-        type: 'virtual-triangle',
-        size: {
-          width: Size.width[objectEntity],
-          height: Size.height[objectEntity]
-        },
-        color: object.color,
-        isPulsing: false
-      }
-
-      // Create rays
-      const incidentRay: Ray = {
-        id: `ray-${objectId}-${mirror.id}-incident`,
-        from: { 
-          x: Position.x[objectEntity] + Size.width[objectEntity] / 2, 
-          y: Position.y[objectEntity] + Size.height[objectEntity] / 2 
-        },
-        to: { x: reflectionPoint.x, y: reflectionPoint.y },
-        color: 'yellow',
-        width: 2
-      }
-
-      const reflectedRay: Ray = {
-        id: `ray-${objectId}-${mirror.id}-reflected`,
-        from: { x: reflectionPoint.x, y: reflectionPoint.y },
-        to: { 
-          x: Position.x[viewerEntity] + Size.width[viewerEntity] / 2, 
-          y: Position.y[viewerEntity] + Size.height[viewerEntity] / 2 
-        },
-        color: 'yellow',
-        width: 2
-      }
-
-      newRays.push(incidentRay, reflectedRay)
-      newViewers.push(virtualViewer)
-      newObjects.push(virtualObject)
-    })
-
-    // Update scene with new rays, virtual viewers, and virtual objects
-    setScene(prev => ({
-      ...prev,
-      objects: [...updatedObjects, ...newObjects],
-      rays: [...prev.rays, ...newRays],
-      viewers: [...prev.viewers, ...newViewers]
-    }))
+    // Clear the clicked object from the entity map
+    entityMapRef.current.delete('clickedObject')
   }
 
   // Reinitialize ECS when scene changes
@@ -151,15 +90,6 @@ function App() {
 
     const viewerEntities = Array.from(entityMapRef.current.values()).filter(id => id !== 0)
     if (viewerEntities.length === 0) return
-
-    // Set initial velocity for all mirrors
-    scene.mirrors.forEach(mirror => {
-      const mirrorEntity = entityMapRef.current.get(mirror.id)
-      if (mirrorEntity) {
-        Velocity.x[mirrorEntity] = speed * 10 // Scale up the speed
-        Velocity.y[mirrorEntity] = 0
-      }
-    })
 
     let lastTimestamp = 0
 
@@ -255,7 +185,7 @@ function App() {
     return () => {
       cancelAnimationFrame(animationFrameId)
     }
-  }, [speed, scene])
+  }, [scene])
 
   return (
     <div ref={gameRef} className="game-container">
