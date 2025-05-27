@@ -110,7 +110,7 @@ function App() {
       // Update DOM element positions, sizes, and colors
       scene.mirrors.forEach(mirror => {
         const mirrorEntity = entityMapRef.current.get(mirror.id)
-        if (!mirrorEntity) return
+        if (mirrorEntity === undefined) return
 
         const mirrorElement = mirrorRefs.current.get(mirror.id)
         if (!mirrorElement) return
@@ -124,7 +124,7 @@ function App() {
 
       scene.objects.forEach(object => {
         const objectEntity = entityMapRef.current.get(object.id)
-        if (!objectEntity) return
+        if (objectEntity === undefined) return
 
         const objectElement = objectRefs.current.get(object.id)
         if (!objectElement) return
@@ -138,7 +138,7 @@ function App() {
 
       scene.rays.forEach(ray => {
         const rayEntity = entityMapRef.current.get(ray.id)
-        if (!rayEntity) return
+        if (rayEntity === undefined) return
 
         const rayElement = rayRefs.current.get(ray.id)
         if (!rayElement) return
@@ -156,10 +156,7 @@ function App() {
 
       scene.viewers.forEach(viewer => {
         const viewerEntity = entityMapRef.current.get(viewer.id)
-        if (!viewerEntity) {
-          console.log('No entity found for viewer:', viewer.id)
-          return
-        }
+        if (viewerEntity === undefined) return
 
         const viewerElement = viewerRefs.current.get(viewer.id)
         if (!viewerElement) {
