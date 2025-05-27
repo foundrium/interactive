@@ -7,7 +7,6 @@ import { getColor } from './scene'
 // Create queries for entities with specific components
 const mirrorQuery = defineQuery([Mirror])
 const objectQuery = defineQuery([Position, Size])
-const viewerQuery = defineQuery([Position, Size])
 
 // Movement system that updates position based on velocity
 export const createMovementSystem = (deltaTime: number): System => {
@@ -22,7 +21,7 @@ export const createMovementSystem = (deltaTime: number): System => {
 }
 
 // System to handle mirror bouncing at screen boundaries
-export const createBoundarySystem = (screenWidth: number, screenHeight: number): System => {
+export const createBoundarySystem = (screenWidth: number, _screenHeight: number): System => {
   return (world: IWorld): IWorld => {
     const entities = mirrorQuery(world)
     for (const entity of entities) {
@@ -41,14 +40,13 @@ export const createBoundarySystem = (screenWidth: number, screenHeight: number):
 
 // System to handle reflections when an object is clicked
 export const createReflectionSystem = (
-  world: IWorld,
+  _world: IWorld,
   entityMap: Map<string, number>,
   onReflection: (virtualObjects: { viewers: any[], objects: any[] }) => void
 ): System => {
   return (world: IWorld): IWorld => {
     const mirrors = mirrorQuery(world)
     const objects = objectQuery(world)
-    const viewers = viewerQuery(world)
 
     // Find the clicked object (assuming it's marked in some way)
     const clickedObject = objects.find(obj => {
@@ -125,7 +123,7 @@ export const createReflectionSystem = (
 
 // System to handle ray emission when an object is clicked
 export const createEmitSystem = (
-  world: IWorld,
+  _world: IWorld,
   entityMap: Map<string, number>,
   onEmit: (rays: any[]) => void
 ): System => {
